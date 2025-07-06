@@ -97,7 +97,7 @@ class GridMesh {
 
                 for (let dx = -1; dx < 2; dx++) {
                     for (let dy = 0; dy < 2; dy++) {
-                        // 只筛选右与下方; 边界条件; 无点
+                        // Filter only the right and bottom; Boundary; No points
                         if (dy === 0 && dx < 1) continue;
                         if ((dx + j < 0) || (dx + j > (this.cols - 1)) || (dy + i > (this.rows - 1))) continue;
                         if (!grids[dy + i][dx + j]) continue;
@@ -128,7 +128,7 @@ class GridMesh {
             }
         }
 
-        // 修改最后输出给一个mesh，而不是一个pointslist
+        // output to a mesh instead of a pointsList
         const clusters = [], clustersG = [];
         for (const [_, coords] of clusterMap) {
             const [row_low, row_high] = d3.extent(coords.map(e => e[0]));

@@ -1,0 +1,25 @@
+/* static/css/style.css */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden; /* Prevent body scrollbars */
+    background-color: #f8f9fa;
+}
+
+#plot-container {
+    min-height: 200px; /* Ensure container has a minimum height */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+#main-canvas {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain; /* Scale canvas to fit container while maintaining aspect ratio */
+}
+
+#loader {
+    z-index: 10;
+}

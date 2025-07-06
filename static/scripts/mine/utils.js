@@ -16,7 +16,7 @@ const random = Math.random;
 const sqrt_3 = Math.sqrt(3);
 
 function scale_points(data_points, THRESHOLD = 0.000001, [min_x, max_x] = [0, canvas_width], [min_y, max_y] = [0, canvas_height]) {
-    // 放缩点到网格中
+    // scale datapoints into grids
     const [packed_min_x, packed_max_x] = d3.extent(data_points, d => d.x);
     const [packed_min_y, packed_max_y] = d3.extent(data_points, d => d.y);
     const packed_x_scale = d3.scaleLinear()
@@ -68,7 +68,7 @@ const number_clamp = (min, max, num) => {
     return Math.max(Math.min(num, max), min)
 }
 
-// 差集
+// difference set
 function mapSetDiff(mapA, setB) {
     const intersectionMap = new Map();
     for (const elem of setB) {
@@ -111,9 +111,9 @@ function calculateKurtosis(numList) {
     return kurtosis - 3;
 }
 
-// 频率均衡化
+// frequency equalization
 function equalizeHist(greys) {
-    // 密度函数
+    // density function
     const bins = greys.sort((a, b) => a[0] - b[0]).map(d => d[0]);
     const weights = greys.map(d => d[1]);
     const min = 0, max = 1;
@@ -122,7 +122,7 @@ function equalizeHist(greys) {
         if (grey2fre.has(bins[i])) grey2fre.set(bins[i], grey2fre.get(bins[i]) + weights[i]); else grey2fre.set(bins[i], weights[i]);
     }
 
-    // 分布函数
+    // distributed function
     let sumCurrent = 0;
     const greyFre_arr = [...grey2fre].sort((a, b) => a[0] - b[0]);
     const grey2cum = new Map();
@@ -141,18 +141,4 @@ function equalizeHist(greys) {
     // console.log(greysMap)
     // console.log(JSON.stringify(greyFre_arr.map(e => [greysMap.get(e[0]), e[1]])));
     return greysMap;
-}
-
-// 四分位数比例尺
-function quantileScale(densities, control_ps = [0.25, 0.75]) {
-    // console.log(densities)
-    densities = densities.map(d => d[0]);
-    densities.sort((a, b) => a - b);
-    const q1 = d3.quantile(densities, 0.25);
-    const median = d3.median(densities);
-    const q3 = d3.quantile(densities, 0.75);
-    console.log(d3.min(densities), q1, median, q3, d3.max(densities))
-    return d3.scaleLinear()
-        .domain([0, q1, q3, d3.max(densities)])
-        .range([0, ...control_ps, 1]);
 }

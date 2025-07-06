@@ -3,29 +3,181 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Pixel Rendering</title>
+    <title>PixelatedScatter</title>
 
     <link rel="shortcut icon" href="../static/favicon.ico">
-    <link type="text/css" rel="stylesheet" href="../static/css/solid.css"/>
-    <link type="text/css" rel="stylesheet" href="../static/css/regular.css"/>
-    <link type="text/css" rel="stylesheet" href="../static/css/bootstrap-4.2.1.min.css"/>
-    <link type="text/css" rel="stylesheet" href="../static/css/bootstrap-slider.min.css"/>
-    <link type="text/css" rel="stylesheet" href="../static/css/my.css"/>
+    <link rel="stylesheet" href="../static/css/font-awesome-6.1.1-all.min.css">
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            height: 100%;
+            overflow: hidden;
+            background-color: #f4f7f9;
+        }
+
+        #app-container {
+            display: flex;
+            width: 100%;
+            height: 100vh;
+        }
+
+        #plot-container {
+            flex-grow: 1;
+            display: flex;
+            overflow: auto;
+            position: relative;
+            min-width: 0;
+            min-height: 0;
+        }
+
+        #l_win {
+            margin: auto;
+            flex-shrink: 0;
+            border: 1px solid #d1d5db;
+            background-color: white;
+            position: relative;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        #data-info-overlay {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+        }
+
+
+        #control-panel {
+            width: 380px;
+            padding: 25px;
+            background-color: #ffffff;
+            border-left: 1px solid #e5e7eb;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .control-card {
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .card-header i {
+            margin-right: 12px;
+            color: #4f46e5;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 6px;
+            color: #374151;
+        }
+
+        #control-panel input[type="number"], #control-panel select, #control-panel input[type="file"] {
+            width: 100%;
+            padding: 8px 12px;
+            box-sizing: border-box;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        #control-panel input[type="file"] {
+            padding: 4px;
+        }
+
+        .radio-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        #render-btn {
+            width: 100%;
+            padding: 12px;
+            margin-top: 10px;
+            background-color: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+
+        #render-btn:hover {
+            background-color: #4338ca;
+        }
+
+        #loading-indicator {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: none; /* Changed to flex for centering */
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 15px;
+            z-index: 10;
+        }
+
+        .loader-spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #4f46e5;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        #loading-text {
+            font-size: 20px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
 
     <script type="text/javascript" src="../static/scripts/library/jquery-3.3.1.min.js"></script>
     <script type="text/javascript" src="../static/scripts/library/d3.min.js"></script>
-    <script type="text/javascript" src="../static/scripts/library/bootstrap-4.2.min.js"></script>
-    <script type="text/javascript" src="../static/scripts/library/bootstrap-slider.min.js"></script>
-
 </head>
-<body style="margin: 8px">
-<script type="text/javascript" src="../static/scripts/mine/curve.js"></script>
+<body>
 <script type="text/javascript" src="../static/scripts/mine/utils.js"></script>
-<script type="module" src="../static/scripts/mine/draw.js"></script>
-
 <script type="text/javascript" src="../static/scripts/mine/partition.js"></script>
 <script type="text/javascript" src="../static/scripts/mine/cluster.js"></script>
-<script type="module" src="../static/scripts/mine/pixel_render.js"></script>
-
+<script type="module" src="../static/scripts/mine/draw.js"></script>
+<script type="module" src="../static/scripts/mine/main_renderer.js"></script>
+<script type="module" src="../static/scripts/mine/curve.js"></script>
 </body>
 </html>

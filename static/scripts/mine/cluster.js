@@ -1,15 +1,28 @@
-const HIGHLIGHT_OUT = 10;
+// --- START OF FILE cluster.js ---
 
 class Cluster {
-    constructor(dy, dx, classes, preferMesh, sump, areas, pointArea, level) {
+    /**
+     * Represents a cluster of data points.
+     * @param {number} dy - The y-offset of the cluster's bounding box.
+     * @param {number} dx - The x-offset of the cluster's bounding box.
+     * @param {object} classes - An object containing class labels and their point counts.
+     * @param {Array<Array<object>>} preferMesh - A 2D array representing preferred locations for each class.
+     * @param {number} sump - The proportion of non-outlier points.
+     * @param {Set<number>} areas - A set of unique area identifiers for the cluster.
+     * @param {Set<number>} pointArea - A set of unique area identifiers occupied by actual points.
+     * @param {number} level - The grid level of this cluster.
+     * @param {number} highlightOut - A factor to highlight outlier classes.
+     */
+    constructor(dy, dx, classes, preferMesh, sump, areas, pointArea, level, highlightOut) {
         this.dy = dy;
         this.dx = dx;
         this.classes = Object.entries(classes);
         this.preferMesh = preferMesh;
         this.tol = this.classes.length > 1 ? (1 - sump) * this.classes.length / (this.classes.length - 1) : 0;
         this.level = level;
-        this.area = areas; // 带偏移的
-        this.pointArea = pointArea; // 如果level<0是area并不完全代表点的area
+        this.area = areas; // Area with offset
+        this.pointArea = pointArea; // Point area might differ from 'area' if level < 0
+        this.highlightOut = highlightOut; // Parameter for highlighting outliers
         this.fixedGrids = [];
         this.pixelNum = {};
         this.layout = [];
@@ -18,12 +31,20 @@ class Cluster {
         this.densityReg = 0;
     }
 
+    /**
+     * Estimates the density of the cluster.
+     * @returns {[number, number]} - An array containing density and area size.
+     */
     densityEstimate() {
         if (this.area.size === 0) return [0, 0];
         this.densityReg = d3.sum(this.classes, c => c[1]) / this.area.size;
         return [this.densityReg, this.area.size];
     }
 
+    /**
+     * Creates a map of grid cell densities.
+     * @returns {Array<[Array<number>, number]>} - A sorted array of [coordinates, density].
+     */
     densityMap() {
         let idx_x, idx_y, dy, dx;
         const densityMap = [];
@@ -38,6 +59,11 @@ class Cluster {
         return densityMap.sort((a, b) => a[1] - b[1]);
     }
 
+    /**
+     * Converts area coordinates from global to local (relative to the cluster's offset).
+     * @param {Set<number>} areasOri - The original set of area identifiers.
+     * @returns {Set<number>} - The new set of area identifiers.
+     */
     areaConvert(areasOri) {
         let idx_x, idx_y;
         const areasNew = new Set();
@@ -49,18 +75,29 @@ class Cluster {
         return areasNew;
     }
 
-    layoutConvert() { // 将偏移后的layout转化为实际像素位置
+    /**
+     * Converts layout coordinates from local to global (actual pixel positions).
+     * @returns {Array<object>} - The layout with absolute coordinates.
+     */
+    layoutConvert() {
         return this.layout.map(p => {
             return {'x': this.dx + p.dx, 'y': this.dy + p.dy, 'label': p.label};
         })
     }
 
+    /**
+     * Marks a grid cell as fixed, removing it from the available area for layout.
+     * @param {Array<number>} coord - The [y, x] coordinate of the grid cell to fix.
+     */
     fixedInsert(coord) {
         this.fixedGrids.push(coord);
         this.area.delete(coord[0] + coord[1] / 10000);
         this.pointArea.delete(coord[0] + coord[1] / 10000);
     }
 
+    /**
+     * Separates classes into outliers and non-outliers based on a tolerance threshold.
+     */
     outlierSep() {
         const totalPoints = d3.sum(this.classes, c => c[1]);
         const threshold = this.tol * totalPoints / this.classes.length;
@@ -75,6 +112,9 @@ class Cluster {
         this.nonOutliers.sort((a, b) => a[1] - b[1]);
     }
 
+    /**
+     * Distributes the available pixels among the classes.
+     */
     numberDistribution() {
         this.outlierSep();
 
@@ -85,7 +125,7 @@ class Cluster {
             const outlierMax = this.outliers[this.outliers.length - 1][1];
             const nonOutlierMinP = this.nonOutliers[0][1] / totalNonOutliers;
             const hLightThreshold = totalPoints / (d3.sum(this.outliers, e => e[1]) + outlierMax / nonOutlierMinP);
-            hLight = min(HIGHLIGHT_OUT, hLightThreshold);
+            hLight = min(this.highlightOut, hLightThreshold);
         }
 
         const totalPixels = this.level >= 0 ? this.area.size : this.pointArea.size;
@@ -100,7 +140,8 @@ class Cluster {
                 this.pixelNum[outlier[0]] = tempP;
             }
         }
-        // 开始放置非离群点
+
+        // Distribute pixels for non-outliers
         const nonPixels = restPixels;
         for (const nonOutlier of this.nonOutliers) {
             tempP = max(round(nonOutlier[1] / totalNonOutliers * nonPixels), 1);
@@ -114,13 +155,16 @@ class Cluster {
         }
     }
 
+    /**
+     * Lays out the pixels for overlapping classes.
+     */
     layoutOverlapped() {
         this.numberDistribution();
-        this.area = this.areaConvert(this.area); // 转成当前网格的坐标（扣去偏移值）
+        this.area = this.areaConvert(this.area); // Convert to local coordinates
         const classAreas = {};
         let idx_x, idx_y;
 
-        // 构造每个类的位置信息
+        // Construct position information for each class
         for (const coord of this.area) {
             idx_y = floor(coord);
             idx_x = round((coord - idx_y) * 10000);
@@ -131,7 +175,7 @@ class Cluster {
                 classAreas[key][0].set(coord, value);
             });
         }
-        for (const coord of this.fixedGrids) { // 被固定的网格算被占用
+        for (const coord of this.fixedGrids) { // Fixed grids are considered occupied
             idx_y = round(coord[0] - this.dy);
             idx_x = round(coord[1] - this.dx);
             Object.entries(this.preferMesh[idx_y][idx_x]).forEach(([key, value]) => {
@@ -142,12 +186,12 @@ class Cluster {
             });
         }
 
-        // 将classAreas与pixelNum进行对齐
+        // Align classAreas with pixelNum
         for (const label in classAreas) {
             if (!this.pixelNum.hasOwnProperty(label)) delete classAreas[label];
         }
 
-        // 依据EI以及进行密度进行初始布局
+        // Initial layout based on density
         while (Object.keys(classAreas).length > 0) {
             let minLength = Infinity;
             let selectedLabel = null;
@@ -175,12 +219,11 @@ class Cluster {
                     gridOccupied.push(...sortedMap2Entries);
                 }
 
-                // just for speedup
+                // Chunking for performance
                 const chunkSize = 10000;
                 for (let i = 0; i < gridOccupied.length; i += chunkSize) {
                     const chunk = gridOccupied.slice(i, i + chunkSize);
                     const processedChunk = chunk.map(e => {
-                        // 使用 const 声明变量，并建议使用 Math.floor/round
                         const idx_y = Math.floor(e[0]);
                         const idx_x = Math.round((e[0] - idx_y) * 10000);
                         return {'dy': idx_y, 'dx': idx_x, 'label': selectedLabel};
@@ -192,8 +235,8 @@ class Cluster {
                 const entries = Array.from(map1.entries()).concat(Array.from(map2.entries()));
                 for (let i = 0; i < multiple; i++) {
                     const chunkSize = 10000;
-                    for (let i = 0; i < entries.length; i += chunkSize) {
-                        const chunk = entries.slice(i, i + chunkSize);
+                    for (let j = 0; j < entries.length; j += chunkSize) {
+                        const chunk = entries.slice(j, j + chunkSize);
                         const processedChunk = chunk.map(e => {
                             const idx_y = Math.floor(e[0]);
                             const idx_x = Math.round((e[0] - idx_y) * 10000);
@@ -212,13 +255,17 @@ class Cluster {
             gridOccupied = new Set(gridOccupied.map(e => e[0]));
             delete classAreas[selectedLabel];
 
-            // 对于其它所有键值对的值的数组进行一些操作
+            // Update remaining class areas
             for (const label in classAreas) {
                 mapMerge(classAreas[label][1], mapSetDiff(classAreas[label][0], gridOccupied));
             }
         }
     }
 
+    /**
+     * Performs a minimal layout using a k-d tree like approach to place pixels.
+     * @returns {Array<object>} - The final layout of pixels.
+     */
     miniLayout() {
         function kd_aux(pix, area) {
             let pixels, areas, regions = [[pix, area]], outputs = [];

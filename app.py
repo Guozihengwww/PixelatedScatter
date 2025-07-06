@@ -1,88 +1,62 @@
+# app.py
+
 import os
 from flask import Flask, render_template, redirect, url_for, request, jsonify
 from os import path
-import pandas as pd
-import numpy as np
 import json
 
-root = r'static/data/scatterplots'
+# Define the root directory for datasets
+DATA_ROOT = path.join('static', 'data', 'scatterplots')
+
 app = Flask(__name__)
+# Ensure the data directory exists
+os.makedirs(DATA_ROOT, exist_ok=True)
 
 
 @app.route('/')
-def hello_world():
+def root():
+    """Redirects the root URL to the main index page."""
     return redirect(url_for('index'))
 
 
 @app.route('/index')
 def index():
+    """Renders the main application page."""
     return render_template('index.html')
 
 
-@app.route('/kurtosis_using_median', methods=['POST'])
-def kurtosis_using_median():
-    kurtosis_threshold = float(request.form['kurtosis_threshold'])
-    num_list = eval(request.form['num_list'])
-    print(kurtosis_threshold, num_list)
-
-    def calculate_kurtosis(cluster_data):
-        median = np.median(cluster_data)
-        std_dev = np.sqrt(np.mean((cluster_data - median) ** 2))
-        if std_dev == 0:
-            return 0
-        z_scores = (cluster_data - median) / std_dev
-        return np.mean(z_scores ** 4) - 3
-
-    clusters_under_threshold = []
-    for idx, cluster in enumerate(num_list):
-        if len(cluster) == 1:
-            clusters_under_threshold.append(idx)
-        kurtosis = calculate_kurtosis(np.array(cluster))
-        if kurtosis <= kurtosis_threshold:
-            clusters_under_threshold.append(idx)
-
-    # 返回符合条件的cluster索引
-    return jsonify(clusters_under_threshold)
+@app.route('/datasets', methods=['GET'])
+def get_datasets():
+    """Returns a list of available .json dataset filenames from the data directory."""
+    try:
+        files = [f for f in os.listdir(DATA_ROOT) if f.endswith('.json')]
+        return jsonify(files)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route('/read_data', methods=['POST'])
 def read_data():
-    filepath = path.join(root, str(request.form['data_name']))
-    with open(filepath, 'r') as file:
-        return json.dumps(json.load(file))
+    """Reads and returns the content of a specific dataset file."""
+    data_name = request.form.get('data_name')
+    if not data_name:
+        return jsonify({"error": "data_name is required"}), 400
 
+    # Basic security check to prevent directory traversal attacks
+    if '..' in data_name or data_name.startswith('/'):
+        return jsonify({"error": "Invalid data_name"}), 400
 
-@app.route('/save_points', methods=['POST'])
-def save_points():
-    data_name = str(request.form['data_name'])
-    results = eval(request.form['results'].replace('null', 'None'))
-    method = str(request.form['method'])
-    size = str(request.form['size'])
+    filepath = path.join(DATA_ROOT, data_name)
 
-    save_path = os.path.join('static/data/' + method, size, data_name + '.json')
-    os.makedirs(os.path.dirname(save_path), exist_ok=True)
-    with open(save_path, 'w') as fw:
-        json.dump(results, fw)
-    return json.dumps({})
+    if not path.exists(filepath):
+        return jsonify({"error": "File not found"}), 404
 
-
-@app.route('/update_visual_map', methods=['POST'])
-def update_visual_map():
-    data_name = str(request.form['data_name'])
-    method = str(request.form['method'])
-    size = str(request.form['size'])
-    visual_map_data = eval(request.form['results'].replace('null', 'None'))['visualMap']
-
-    file_path = os.path.join('static/data', method, size, data_name + '.json')
-    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-    with open(file_path, 'r', encoding='utf-8') as f_read:
-        existing_data = json.load(f_read)
-
-    existing_data['visualMap'] = visual_map_data
-
-    with open(file_path, 'w') as f_write:
-        json.dump(existing_data, f_write)
-    return json.dumps({})
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 if __name__ == '__main__':
