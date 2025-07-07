@@ -2,6 +2,12 @@
 
 PixelatedScatter is a pixelated web-based visual abstraction tool for large-scale multiclass scatterplots, designed to provide better feature preservation across arbitrary abstraction levels for large-scale scatterplots, particularly in medium-to-low density regions.
 
+## Our DEMO could be found at:
+
+https://guozihengwww.github.io/PixelatedScatter-Demo/
+
+
+
 ##### For an Original scatterplot:
 
 ![image-20250707063158167](img/image-20250707063158167.png)
