@@ -25,8 +25,8 @@ https://guozihengwww.github.io/PixelatedScatter-Demo/
 1. **Clone the repository:**
 
    ```
-   git clone https://github.com/Guozihengwww/PixelatedScatter-Arbitrary-level-Visual-Abstraction-for-Large-scale-Multiclass-Scatterplots
-   cd .\PixelatedScatter-Arbitrary-level-Visual-Abstraction-for-Large-scale-Multiclass-Scatterplots\
+   git clone https://github.com/Guozihengwww/PixelatedScatter
+   cd .\PixelatedScatter\
    ```
 
 2. **Install Flask:**
